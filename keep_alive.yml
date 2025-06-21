@@ -1,32 +1,34 @@
 name: Keep Streamlit apps awake
-
 on:
-  schedule:            # every 6 h at :00 UTC – plenty under the 12 h limit
-    - cron: "0 */6 * * *"
-  workflow_dispatch:   # lets you run it by hand from the Actions tab
-
-concurrency:           # cancel an older run if one is still hanging
-  group: keep-alive
-  cancel-in-progress: true
+  schedule:
+    - cron:  "0 */6 * * *"      # still every 6 h UTC
+  workflow_dispatch:
 
 jobs:
-  ping:
+  wake:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo (needed so GitHub sees keep_alive.py)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+        with: { python-version: "3.12" }
 
-      - name: Install dependencies & run script
-        run: python keep_alive.py
+      - name: Install deps (Selenium + Chrome)
+        run: |
+          pip install selenium~=4.21
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          echo "CHROMIUM_BINARY=$(which chromium-browser)" >> $GITHUB_ENV
 
-      - name: Upload ping log (optional but nice)
+      - name: Run wake-up script
+        env:
+          # tell Selenium where Ubuntu’s chromium is
+          CHROME_BINARY: ${{ env.CHROMIUM_BINARY }}
+        run: python wake_up_streamlit.py
+
+      - name: Upload log
         uses: actions/upload-artifact@v4
         with:
-          name: streamlit-ping-log
-          path: ping.log
+          name: wake-log
+          path: wake_log.txt
