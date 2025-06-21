@@ -1,34 +1,26 @@
 name: Keep Streamlit apps awake
 on:
   schedule:
-    - cron:  "0 */6 * * *"      # still every 6 h UTC
+    - cron:  "0 */6 * * *"
   workflow_dispatch:
 
 jobs:
   wake:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
 
-      - name: Install deps (Selenium + Chrome)
-        run: |
-          pip install selenium~=4.21
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser
-          echo "CHROMIUM_BINARY=$(which chromium-browser)" >> $GITHUB_ENV
+      - name: Install Python deps
+        run: pip install selenium~=4.21
 
       - name: Run wake-up script
-        env:
-          # tell Selenium where Ubuntu’s chromium is
-          CHROME_BINARY: ${{ env.CHROMIUM_BINARY }}
-        run: python wake_up_streamlit.py
+        run: python wake_up_streamlit.py     # ← the Selenium script you saved
 
-      - name: Upload log
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: wake-log
           path: wake_log.txt
