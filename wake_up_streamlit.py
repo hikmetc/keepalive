@@ -1,29 +1,18 @@
 #!/usr/bin/env python3
-"""
-wake_up_streamlit.py
-────────────────────
-For every URL in URLS…
-
-1. open the page in a headless Chrome session
-2. click the grey “Wake up” button (text: ‘Yes, get this app back up!’)
-   – if it isn’t there, the app is already awake
-3. wait 5 s so the WebSocket connects
-4. log the outcome
-
-Designed for GitHub Actions’ ubuntu-latest runner (Chrome pre-installed).
-"""
-
 from __future__ import annotations
-
-import datetime as dt
-import logging
-import pathlib
-import time
+import datetime as dt, logging, pathlib, time
 from typing import Final
 
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    WebDriverException,
+    TimeoutException,
+)
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 URLS: Final[list[str]] = [
     "https://hikmetc-apscalculator.streamlit.app/",
@@ -34,7 +23,6 @@ URLS: Final[list[str]] = [
     "https://bvcalculator.streamlit.app/",
 ]
 
-# ---------- logging ----------------------------------------------------------
 LOG_FILE = pathlib.Path("wake_log.txt")
 logging.basicConfig(
     filename=LOG_FILE,
@@ -43,10 +31,10 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-# ---------- core helpers -----------------------------------------------------
+
 def wake(url: str, driver: webdriver.Chrome) -> None:
-    """Visit *url*; click the Wake-Up button if present."""
-    for attempt in range(2):  # one retry if navigation fails
+    """Open URL, click Wake-Up button if present, wait for websocket open."""
+    for attempt in range(2):
         try:
             driver.get(url)
             break
@@ -64,19 +52,26 @@ def wake(url: str, driver: webdriver.Chrome) -> None:
     except NoSuchElementException:
         log.info("%s – already awake", url)
 
-    time.sleep(5)  # allow websocket & script load
+    # Wait until Streamlit websocket handshake (network idle ≈ page loaded)
+    try:
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(("css selector", "div.stApp"))
+        )
+    except TimeoutException:
+        pass  # still fine; the request itself woke the app
 
 
 def main() -> None:
     log.info("=== run at %s ===", dt.datetime.now(dt.timezone.utc).isoformat(" ", "seconds"))
 
-    chrome_opts = Options()
-    chrome_opts.add_argument("--headless=new")
-    chrome_opts.add_argument("--no-sandbox")
-    chrome_opts.add_argument("--disable-dev-shm-usage")
-    chrome_opts.add_argument("--disable-gpu")  # safer on some runners
+    opts = Options()
+    opts.add_argument("--headless=new")
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
+    opts.add_argument("--disable-gpu")
 
-    with webdriver.Chrome(options=chrome_opts) as drv:
+    service = Service(log_path="/dev/null")  # mute chromedriver logs
+    with webdriver.Chrome(service=service, options=opts) as drv:
         for url in URLS:
             try:
                 wake(url, drv)
