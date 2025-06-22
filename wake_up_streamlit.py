@@ -54,7 +54,7 @@ def wake(url: str, driver: webdriver.Chrome) -> None:
 
     # Wait until Streamlit websocket handshake (network idle ≈ page loaded)
     try:
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 20).until(
             EC.presence_of_element_located(("css selector", "div.stApp"))
         )
     except TimeoutException:
