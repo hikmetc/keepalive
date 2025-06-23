@@ -1,4 +1,4 @@
-name: Keep Streamlit apps awake
+name: Keep Streamlit apps awake 
 
 on:
   schedule:
