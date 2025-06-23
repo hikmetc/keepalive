@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Wake every URL in URLS:
-• open in fresh headless-Chrome with a random User-Agent
+• open in fresh headless-Chrome with a random User-Agent 
 • click the grey “Yes, get this app back up!” button if present
 • hold the page ~20 s so the Streamlit WebSocket is established
   (this is what adds a ‘viewer’ in Analytics)
