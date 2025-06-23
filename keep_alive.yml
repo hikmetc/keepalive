@@ -2,11 +2,11 @@ name: Keep Streamlit apps awake
 
 on:
   schedule:
-    # minute 0 every 3rd hour (00, 03, 06, 09, 12, 15, 18, 21 UTC)
+    # minute 0 every 3rd hour  → 00, 03, 06, 09, 12, 15, 18, 21 UTC
     - cron: "0 */3 * * *"
   workflow_dispatch:
 
-concurrency:        # cancel older run if a new one starts
+concurrency:                      # never let two runs overlap
   group: keep-streamlit-awake
   cancel-in-progress: true
 
@@ -23,10 +23,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 📦  Install deps
+      - name: 📦  Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install selenium~=4.21
+          pip install selenium~=4.21 fake-useragent~=1.5
 
       - name: 🔔  Wake Streamlit apps
         run: python wake_up_streamlit.py
